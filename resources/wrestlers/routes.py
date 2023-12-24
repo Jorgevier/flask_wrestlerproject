@@ -1,41 +1,55 @@
 from flask import request
 from uuid import uuid4
+from flask.views import MethodView
 
-from app import app
+
+from . import bp
 from db import wrestlers
-
-@app.get('/wrestler')
-def wrestlers():
-  return { 'wrestlers': list(wrestlers.values()) }, 200
-
-@app.get('/wrestlers/<wrestler_id>')
-def get_wrestler(wrestler_id):
-  try:
-    return { 'wrestlers': wrestlers[wrestler_id] } 
-  except:
-    return {'message': 'invalid wrestler'}, 400
-
-@app.route('/wrestler', methods=["POST"])
-def create_wrestler():
-  wrestler_data = request.get_json()
-  wrestlers[uuid4()] = wrestler_data
-  return { 'message' : f'{wrestler_data["wrestler"]} created' }, 201
-
-@app.put('/wrestlers/<wrestler_id>')
-def update_wrestler(wrestler_id):
-  try:
-    wrestler = wrestlers[wrestler_id]
-    wrestler_data = request.get_json()
-    wrestlers |= wrestler_data
-    return { 'message': f'{wrestlers["wrestlername"]} updated'}, 202
-  except KeyError:
-    return {'message': "Invalid info"}, 400
+from schemas import WrestlerSchema
 
 
-@app.delete('/wrestlers/<wrestler_id>')
-def delete_wrestler(wrestler_id):
-  try:
-    del wrestlers[wrestler_id]
-    return { 'message': f'wrestler Deleted' }, 202
-  except:
-    return {'message': "Invalid wrestler"}, 400
+@bp.route('/wrestlers/<wrestler_id>')
+class Wrestler(MethodView):
+
+    @bp.response(200, WrestlerSchema)
+# @app.get('/wrestlers/<wrestler_id>')
+    def get(self, wrestler_id):
+        try:
+            return wrestlers[wrestler_id]  
+        except:
+            return {'message': 'invalid wrestler'}, 400
+
+# @app.put('/wrestlers/<wrestler_id>')
+    @bp.arguments(WrestlerSchema)
+    def put(self, wrestler_data, wrestler_id):
+        try:
+            wrestler = wrestlers[wrestler_id]
+            # wrestler_data = request.get_json()
+            wrestlers |= wrestler_data
+            return { 'message': f'{wrestlers["wrestlername"]} updated'}, 202
+        except KeyError:
+            return {'message': "Invalid info"}, 400
+        
+    def delete(self, wrestler_id):
+        try:
+            del wrestlers[wrestler_id]
+            return { 'message': f'wrestler Deleted' }, 202
+        except:
+            return {'message': "Invalid wrestler"}, 400
+        
+@bp.route('/wrestler')
+class WrestlerList(MethodView):
+    
+    @bp.response(200, WrestlerSchema(many = True))
+    def get(self):
+        return list(wrestlers.values())
+
+# @app.delete('/wrestlers/<wrestler_id>')
+
+
+    # @app.route('/wrestler', methods=["POST"])
+    @bp.arguments(WrestlerSchema)
+    def wrestler(self, wrestler_data):
+        # wrestler_data = request.get_json()
+        wrestlers[uuid4()] = wrestler_data
+        return { 'message' : f'{wrestler_data["wrestler"]} created' }, 201
