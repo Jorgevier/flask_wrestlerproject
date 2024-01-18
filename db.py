@@ -14,11 +14,11 @@ wrestlers = {
 stats = {
   '1' : {
     'signature_moves' : 'Stunner',
-    'user_id': '1'
+    'wrestler_id': '1'
   },
   '2': {
     'signature_moves': 'Sharp Shooter',
-    'user_id': '2'
+    'wrestler_id': '2'
   }
   
 }

@@ -9,20 +9,19 @@ from . import bp
 
 
 @bp.route('/<post_id>')
-class Post(MethodView):
-# @bp.get('/stat/<stat_id>')
+class Stat(MethodView):
+
     @bp.response(200, StatSchema)
-    def get_stat(stat_id):
+    def get(self, stat_id):
         try:
-            return {'stat': stats[stat_id]}, 200
+            return stats[stat_id]
         except KeyError:
             return {'message': "Invalid stat"}, 400
-# @bp.put('/stat/<stat_id>')
+
     @bp.arguments(StatSchema)
-    def update_stat(stat_id):
+    def put(self,stat_data, stat_id):
         try:
             stat = stats[stat_id]
-            stat_data = request.get_json()
             if stat_data['wrestler_id'] == stat['wrestler_id']:
                 stat['body'] = stat_data['body']
                 return { 'message': 'stat has been updated' }, 202
@@ -32,7 +31,7 @@ class Post(MethodView):
 
 
 # @bp.delete('/post/<stat_id>')
-    def delete_stat(stat_id):
+    def delete(stat_id):
         try:
             del stats[stat_id]
             return {"message": "stat is deleted"}, 202
@@ -40,7 +39,7 @@ class Post(MethodView):
             return {'message':"Invalid stat"}, 400
         
 @bp.route('/')
-class PostList(MemoryView):
+class PostList(MethodView):
 
     # @bp.get('/stat')
     @bp.response(200, StatSchema(many = True))
@@ -50,7 +49,6 @@ class PostList(MemoryView):
     # @bp.stat('/stat')
     @bp.arguments(StatSchema)
     def stat(self, stat_data):
-    # stat_data = request.get_json()
         wrestler_id = stat_data['wrestler_id']
         if wrestler_id in wrestlers:
             stats[uuid4()] = stat_data
