@@ -1,9 +1,13 @@
 from flask import request
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from uuid import uuid4
 from flask.views import MethodView
+from flask_smorest import abort
 
-from schemas import StatSchema
-from db import stats, wrestlers
+from models import StatModel
+
+from schemas import StatSchema, StatSchemaNested
+
 from . import bp
 
 
@@ -11,47 +15,49 @@ from . import bp
 @bp.route('/<post_id>')
 class Stat(MethodView):
 
-    @bp.response(200, StatSchema)
+    @bp.response(200, StatSchemaNested)
     def get(self, stat_id):
-        try:
-            return stats[stat_id]
-        except KeyError:
-            return {'message': "Invalid stat"}, 400
+        stat = StatModel.query.get(stat_id)
+        if stat:
+            return stat
+        abort(400, message='Invalid post')
 
     @bp.arguments(StatSchema)
     def put(self,stat_data, stat_id):
-        try:
-            stat = stats[stat_id]
-            if stat_data['wrestler_id'] == stat['wrestler_id']:
-                stat['body'] = stat_data['body']
-                return { 'message': 'stat has been updated' }, 202
-            return {'message': "Unauthorized"}, 401
-        except:
-            return {'message': "Invalid stat id"}, 400
+        stat = StatModel.query.get(stat_id)
+        if stat:
+            stat.body = stat_data['body']
+            stat.commit()
+            return { 'message': 'stat has been updated' }, 202
+        return {'message': "Invalid stat id"}, 400
 
 
 # @bp.delete('/post/<stat_id>')
-    def delete(stat_id):
-        try:
-            del stats[stat_id]
+    def delete(self, stat_id):
+        stat = StatModel.query.get(stat_id)
+        if stat:
+            stat.delete()
             return {"message": "stat is deleted"}, 202
-        except:
-            return {'message':"Invalid stat"}, 400
+        return {'message':"Invalid stat"}, 400
         
 @bp.route('/')
-class PostList(MethodView):
+class StatList(MethodView):
 
     # @bp.get('/stat')
     @bp.response(200, StatSchema(many = True))
     def get(self):
-        return list(stats.values()) 
+        return StatModel.query.all()
     
     # @bp.stat('/stat')
+    @jwt_required()
     @bp.arguments(StatSchema)
     def stat(self, stat_data):
-        wrestler_id = stat_data['wrestler_id']
-        if wrestler_id in wrestlers:
-            stats[uuid4()] = stat_data
+        try:
+            stat = StatModel()
+            stat.wrestler_id = get_jwt_identity
+            stat.body = stat_data['body']
+            post.commit()
             return { 'message': "New Stat Created" }, 201
-        return { 'message': "Invalid User"}, 401
+        except:
+            return { 'message': "Invalid User"}, 401
 
